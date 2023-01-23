@@ -128,20 +128,28 @@ void gen_private_key(mpz_t d, mpz_t e, mpz_t tot) {
 	mpz_clear(tmp_t);
 }
 
+#include <time.h>
 void rsa_gen_keys(RSA *rsa) {
+	srand(time(0));
+	unsigned long seed = rand() % (1<<9) + 67;
 	gmp_randstate_t rng;
 	mpz_t p, q;
 	mpz_t tot;
 	mpz_t r, t, new_r, new_t, quotient;
 	mpz_t tmp_r, tmp_t;
 
-	mpz_inits(p, q, tot, 0);
+	mpz_inits(p, q, tot, r, t, new_r, new_t, quotient, tmp_r, tmp_t, 0);
+	//mpz_inits(p, q, tot,0);
 	gmp_randinit_mt(rng);
+	gmp_randseed_ui(rng, seed % (1<<16));
 
 	do {
-		mpz_urandomb(p, rng, 99);
-		mpz_urandomb(q, rng, 103);
+		mpz_urandomb(p, rng, 98);
+		mpz_urandomb(q, rng, 102);
+		//mpz_add_ui(p, p, 0x200);
+		//mpz_add_ui(q, q, 0x200);
 	} while(!miller_rabin(p, 100) || !miller_rabin(q, 100));
+	gmp_printf("p = %Zd\nq = %Zd\n", p, q);
 
 	mpz_mul(rsa->n, p, q);
 	mpz_sub_ui(p, p, 1);
@@ -151,14 +159,19 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_clear(q);
 
 	do {
-		mpz_urandomb(rsa->e, rng, 17);
-	} while(!miller_rabin(rsa->e, 50));
+		mpz_urandomb(rsa->e, rng, 8);
+	} while(!miller_rabin(rsa->e, 100));
+	//mpz_set_ui(rsa->e, 167);
 
-	mpz_inits(quotient, tmp_r, tmp_t, 0);
-	mpz_init_set_ui(t, 0);
-	mpz_init_set_ui(new_t, 1);
-	mpz_init_set(r, tot);
-	mpz_init_set(new_r, rsa->e);
+	gmp_printf("e = %Zd\n", rsa->e);
+
+	/* generate private key */
+	//gen_private_key(rsa->d, rsa->e, tot);
+
+	mpz_set_ui(t, 0);
+	mpz_set_ui(new_t, 1);
+	mpz_set(r, tot);
+	mpz_set(new_r, rsa->e);
 
 	while(mpz_cmp_ui(new_r, 0) != 0) {
 		mpz_cdiv_q(quotient, r, new_r);
@@ -177,7 +190,26 @@ void rsa_gen_keys(RSA *rsa) {
 			mpz_add(t, t, tot);
 
 		mpz_set(rsa->d, t);
+	} else {
+		mpz_t tmp, priv;
+
+		mpz_init(tmp);
+		mpz_init_set(priv, rsa->e);
+
+		while(true) {
+			mpz_mul(tmp, priv, rsa->e);
+			mpz_mod(tmp, tmp, tot);
+			if(mpz_cmp_ui(tmp, 1) == 0)
+				break;
+			mpz_add_ui(priv, priv, 1);
+		}
+
+		mpz_set(rsa->d, priv);
+		mpz_clear(tmp);
+		mpz_clear(priv);
 	}
+
+	gmp_printf("d = %Zd\n", rsa->d);
 
 	mpz_clear(r);
 	mpz_clear(t);
@@ -199,7 +231,7 @@ void rsa_gen_keys(RSA *rsa) {
 #define BLOCKSIZE 16
 void rsa_encrypt(RSA *rsa, FILE *inp, FILE *outp) {
 	size_t n;
-	char buf1[BLOCKSIZE], buf2[BLOCKSIZE<<2];
+	char buf1[BLOCKSIZE], buf2[BLOCKSIZE<<1];
 	mpz_t m;
 
 	mpz_init(m);
@@ -217,7 +249,7 @@ void rsa_encrypt(RSA *rsa, FILE *inp, FILE *outp) {
 
 void rsa_decrypt(RSA *rsa, FILE *inp, FILE *outp) {
 	size_t n;
-	char buf1[BLOCKSIZE<<2], buf2[BLOCKSIZE];
+	char buf1[BLOCKSIZE<<1], buf2[BLOCKSIZE];
 	mpz_t c;
 
 	mpz_init(c);
@@ -276,10 +308,21 @@ int main(void) {
 	//assert(mpz_cmp_ui(tmp, 1) == 0);
 	//gmp_printf("d*e %% tot = %Zd\n", tmp);
 
-	printf("########## test file encryption and decryption ##########\n");
 	RSA rsa;
 	mpz_inits(rsa.e, rsa.d, rsa.n, 0);
 	rsa_gen_keys(&rsa);
+//	mpz_t a, b, c;
+//	mpz_inits(a,b,c,0);
+//	mpz_set_str(a, "99064193639041831239", 10);
+//	gmp_printf("a = %Zd\n", a);
+//	mpz_powm(b, a, rsa.e, rsa.n);
+//	gmp_printf("b = %Zd\n", b);
+//	printf("bitlen(b) = %zu\n", mpz_sizeinbase(b, 2));
+//	mpz_powm(c, b, rsa.d, rsa.n);
+//	gmp_printf("c = %Zd\n", c);
+//	mpz_clear(a);
+//	mpz_clear(b);
+//	mpz_clear(c);
 	//mpz_set(rsa.e, e);
 	//mpz_set(rsa.d, d);
 	//mpz_mul(rsa.n, p, q);

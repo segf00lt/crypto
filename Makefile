@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Werror -Wpedantic -g
+CFLAGS = -Wall -Werror -Wpedantic
 LDFLAGS = -lgmp
 
 all:
