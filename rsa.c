@@ -100,7 +100,7 @@ void gen_private_key(mpz_t d, mpz_t e, mpz_t tot) {
 	mpz_init_set(new_r, e);
 
 	while(mpz_cmp_ui(new_r, 0) != 0) {
-		mpz_cdiv_q(quotient, r, new_r);
+		mpz_fdiv_q(quotient, r, new_r);
 		mpz_set(tmp_r, new_r);
 		mpz_set(tmp_t, new_t);
 		mpz_mul(new_r, new_r, quotient);
@@ -128,6 +128,15 @@ void gen_private_key(mpz_t d, mpz_t e, mpz_t tot) {
 	mpz_clear(tmp_t);
 }
 
+bool test_rsa_keys(RSA *rsa, gmp_randstate_t rng) {
+	mpz_t m, c, c_d;
+	mpz_inits(m,c,c_d,0);
+	mpz_urandomb(m, rng, 128);
+	mpz_powm(c, m, rsa->e, rsa->n);
+	mpz_powm(c_d, c, rsa->d, rsa->n);
+	return mpz_cmp(m, c_d) == 0;
+}
+
 #include <time.h>
 void rsa_gen_keys(RSA *rsa) {
 	srand(time(0));
@@ -137,8 +146,9 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_t tot;
 	mpz_t r, t, new_r, new_t, quotient;
 	mpz_t tmp_r, tmp_t;
+	mpz_t gcd;
 
-	mpz_inits(p, q, tot, r, t, new_r, new_t, quotient, tmp_r, tmp_t, 0);
+	mpz_inits(p, q, tot, r, t, new_r, new_t, quotient, tmp_r, tmp_t, gcd, 0);
 	//mpz_inits(p, q, tot,0);
 	gmp_randinit_mt(rng);
 	gmp_randseed_ui(rng, seed % (1<<16));
@@ -159,11 +169,14 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_clear(q);
 
 	do {
-		mpz_urandomb(rsa->e, rng, 8);
-	} while(!miller_rabin(rsa->e, 100));
-	//mpz_set_ui(rsa->e, 167);
+		mpz_urandomb(rsa->e, rng, 16);
+		mpz_gcd(gcd, rsa->e, tot);
+	} while(mpz_cmp_ui(gcd, 1) != 0);
+	//mpz_set_ui(rsa->e, (1 << 16) + 1);
+	mpz_gcd(gcd, rsa->e, tot);
+	assert(mpz_cmp_ui(gcd, 1) == 0);
 
-	gmp_printf("e = %Zd\n", rsa->e);
+	gmp_printf("tot = %Zd\ne = %Zd\n", tot, rsa->e);
 
 	/* generate private key */
 	//gen_private_key(rsa->d, rsa->e, tot);
@@ -174,7 +187,7 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_set(new_r, rsa->e);
 
 	while(mpz_cmp_ui(new_r, 0) != 0) {
-		mpz_cdiv_q(quotient, r, new_r);
+		mpz_fdiv_q(quotient, r, new_r);
 		mpz_set(tmp_r, new_r);
 		mpz_set(tmp_t, new_t);
 		mpz_mul(new_r, new_r, quotient);
@@ -190,26 +203,17 @@ void rsa_gen_keys(RSA *rsa) {
 			mpz_add(t, t, tot);
 
 		mpz_set(rsa->d, t);
-	} else {
-		mpz_t tmp, priv;
-
-		mpz_init(tmp);
-		mpz_init_set(priv, rsa->e);
-
-		while(true) {
-			mpz_mul(tmp, priv, rsa->e);
-			mpz_mod(tmp, tmp, tot);
-			if(mpz_cmp_ui(tmp, 1) == 0)
-				break;
-			mpz_add_ui(priv, priv, 1);
-		}
-
-		mpz_set(rsa->d, priv);
-		mpz_clear(tmp);
-		mpz_clear(priv);
 	}
 
-	gmp_printf("d = %Zd\n", rsa->d);
+	gmp_printf("n = %Zd\nd = %Zd\n", rsa->n, rsa->d);
+	mpz_t d_test;
+	mpz_init(d_test);
+	mpz_invert(d_test, rsa->e, tot);
+	gmp_printf("d_test = %Zd\n", d_test);
+	assert(mpz_cmp(rsa->d, d_test) == 0);
+	mpz_clear(d_test);
+
+	assert(test_rsa_keys(rsa, rng));
 
 	mpz_clear(r);
 	mpz_clear(t);
