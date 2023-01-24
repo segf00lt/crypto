@@ -169,6 +169,8 @@ void rsa_gen_keys(RSA *rsa) {
 		mpz_gcd(gcd, rsa->e, tot);
 	} while(mpz_cmp_ui(gcd, 1) != 0);
 
+	gmp_randclear(rng);
+
 	/* generate private key */
 	mpz_set_ui(t, 0);
 	mpz_set_ui(new_t, 1);
@@ -192,6 +194,7 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_set(rsa->d, t);
 
 	mpz_clear(tot);
+	mpz_clear(gcd);
 	mpz_clear(r);
 	mpz_clear(t);
 	mpz_clear(new_r);
@@ -240,30 +243,53 @@ void rsa_decrypt(RSA *rsa, FILE *inp, FILE *outp) {
 	mpz_clear(c);
 }
 
-int main(void) {
+#define USAGE "%s: usage: g|e|d [key modulo] [infile outfile]\n"
+
+int main(int argc, char **argv) {
 	RSA rsa;
-	mpz_inits(rsa.e, rsa.d, rsa.n, 0);
-	rsa_gen_keys(&rsa);
 	FILE *inp, *outp;
-	inp = fopen("rsa.c", "r");
-	outp = fopen("encrypted", "wb");
+	int estat = 0;
 
-	rsa_encrypt(&rsa, inp, outp);
+	if(argc == 1) {
+		fprintf(stderr, USAGE, argv[0]);
+		return 1;
+	}
 
-	fclose(inp);
-	fclose(outp);
+	mpz_inits(rsa.e, rsa.d, rsa.n, 0);
 
-	inp = fopen("encrypted", "rb");
-	outp = fopen("decrypted", "w");
+	if(argv[1][0] == 'g' && argv[1][1] == 0) {
+		rsa_gen_keys(&rsa);
+		gmp_printf("public key: %Zx\nprivate key: %Zx\nmodulo: %Zx\n", rsa.e, rsa.d, rsa.n);
+	} else if(argv[1][0] == 'e' && argv[1][1] == 0) {
+		mpz_set_str(rsa.e, argv[2], 16);
+		mpz_set_str(rsa.n, argv[3], 16);
 
-	rsa_decrypt(&rsa, inp, outp);
+		inp = fopen(argv[4], "r");
+		outp = fopen(argv[5], "wb");
 
-	fclose(inp);
-	fclose(outp);
+		rsa_encrypt(&rsa, inp, outp);
+
+		fclose(inp);
+		fclose(outp);
+	} else if(argv[1][0] == 'd' && argv[1][1] == 0) {
+		mpz_set_str(rsa.d, argv[2], 16);
+		mpz_set_str(rsa.n, argv[3], 16);
+
+		inp = fopen(argv[4], "rb");
+		outp = fopen(argv[5], "w");
+
+		rsa_decrypt(&rsa, inp, outp);
+
+		fclose(inp);
+		fclose(outp);
+	} else {
+		fprintf(stderr, USAGE, argv[0]);
+		estat = 1;
+	}
 
 	mpz_clear(rsa.e);
 	mpz_clear(rsa.d);
 	mpz_clear(rsa.n);
 
-	return 0;
+	return estat;
 }
