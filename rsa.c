@@ -206,6 +206,8 @@ void rsa_gen_keys(RSA *rsa) {
 
 /* NOTE message must be less than n */
 
+//TODO padding
+
 #define BLOCKSIZE 16 /* read 128 bit chunks of file */
 void rsa_encrypt(RSA *rsa, FILE *inp, FILE *outp) {
 	size_t n;
