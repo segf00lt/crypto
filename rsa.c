@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
 		mpz_set_str(rsa.e, argv[2], 16);
 		mpz_set_str(rsa.n, argv[3], 16);
 
-		inp = fopen(argv[4], "r");
+		inp = fopen(argv[4], "rb");
 		outp = fopen(argv[5], "wb");
 
 		rsa_encrypt(&rsa, inp, outp);
@@ -276,7 +276,7 @@ int main(int argc, char **argv) {
 		mpz_set_str(rsa.n, argv[3], 16);
 
 		inp = fopen(argv[4], "rb");
-		outp = fopen(argv[5], "w");
+		outp = fopen(argv[5], "wb");
 
 		rsa_decrypt(&rsa, inp, outp);
 

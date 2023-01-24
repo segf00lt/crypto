@@ -1,7 +1,9 @@
-CFLAGS = -Wall -Werror -Wpedantic
+CFLAGS = -Wall -Werror -Wpedantic -g
 LDFLAGS = -lgmp
 
 all:
 	$(CC) $(CFLAGS) $(LDFLAGS) rsa.c -o rsa
+test: all
+	./test.sh
 
-.PHONY: all
+.PHONY: all test
