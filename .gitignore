@@ -7,3 +7,5 @@ a.out
 vgcore.*
 save.vim
 tags
+*.dSYM
+enigma

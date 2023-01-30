@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <gmp.h>
 #include <assert.h>
-#include <error.h>
+//#include <error.h>
 #include <time.h>
 
 typedef struct rsa_struct {
@@ -27,7 +27,7 @@ bool miller_rabin(mpz_t n, int k) {
 		return false;
 
 	gmp_randinit_default(rs);
-	mpz_inits(s, d, a, x, n_1, n_3, count, 0);
+	mpz_inits(s, d, a, x, n_1, n_3, count, NULL);
 	mpz_sub_ui(n_1, n, 1);
 	mpz_sub_ui(n_3, n, 3);
 	mpz_set_ui(s, 0);
@@ -77,7 +77,7 @@ bool miller_rabin(mpz_t n, int k) {
 void euler_tot(mpz_t dest, mpz_t p, mpz_t q) {
 	mpz_t p_1, q_1;
 
-	mpz_inits(p_1, q_1, 0);
+	mpz_inits(p_1, q_1, NULL);
 	mpz_sub_ui(p_1, p, 1);
 	mpz_sub_ui(q_1, q, 1);
 	mpz_mul(dest, p_1, q_1);
@@ -93,7 +93,7 @@ void gen_private_key(mpz_t d, mpz_t e, mpz_t tot) {
 	mpz_t r, t, new_r, new_t, quotient;
 	mpz_t tmp_r, tmp_t;
 
-	mpz_inits(quotient, tmp_r, tmp_t, 0);
+	mpz_inits(quotient, tmp_r, tmp_t, NULL);
 	mpz_init_set_ui(t, 0);
 	mpz_init_set_ui(new_t, 1);
 	mpz_init_set(r, tot);
@@ -130,7 +130,7 @@ void gen_private_key(mpz_t d, mpz_t e, mpz_t tot) {
 
 bool test_rsa_keys(RSA *rsa, gmp_randstate_t rng) {
 	mpz_t m, c, c_d;
-	mpz_inits(m,c,c_d,0);
+	mpz_inits(m,c,c_d,NULL);
 	mpz_urandomb(m, rng, 128);
 	mpz_powm(c, m, rsa->e, rsa->n);
 	mpz_powm(c_d, c, rsa->d, rsa->n);
@@ -146,7 +146,7 @@ void rsa_gen_keys(RSA *rsa) {
 	mpz_t tmp_r, tmp_t;
 	mpz_t gcd;
 
-	mpz_inits(p, q, tot, r, t, new_r, new_t, quotient, tmp_r, tmp_t, gcd, 0);
+	mpz_inits(p, q, tot, r, t, new_r, new_t, quotient, tmp_r, tmp_t, gcd, NULL);
 	srand(time(0));
 	seed = rand() % (1<<9) + 67;
 	gmp_randinit_mt(rng);
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	mpz_inits(rsa.e, rsa.d, rsa.n, 0);
+	mpz_inits(rsa.e, rsa.d, rsa.n, NULL);
 
 	if(argv[1][0] == 'g' && argv[1][1] == 0) {
 		rsa_gen_keys(&rsa);
